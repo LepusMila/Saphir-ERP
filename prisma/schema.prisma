@@ -1,0 +1,196 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+// ==========================================
+// CONFIGURAÇÕES GERAIS E ACESSO
+// ==========================================
+
+model Usuario {
+  id          Int          @id @default(autoincrement())
+  nome        String
+  email       String       @unique
+  senha       String
+  logs        Log[]
+  funcionario Funcionario? // Relação 1:1 (Um usuário pode ser um funcionário)
+}
+
+model Log {
+  id        Int      @id @default(autoincrement())
+  data      DateTime @default(now())
+  tipo      String
+  desc      String
+  usuarioId Int?
+  usuario   Usuario? @relation(fields: [usuarioId], references: [id])
+}
+
+// ==========================================
+// RH E PROJETOS
+// ==========================================
+
+model Funcionario {
+  id        Int      @id @default(autoincrement())
+  cargo     String
+  equipe    String
+  endereco  String?
+  salario   Float
+  usuarioId Int      @unique
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id])
+  rhId      Int?
+  rh        Rh?      @relation(fields: [rhId], references: [id])
+  projetoId Int?
+  projeto   Projeto? @relation(fields: [projetoId], references: [id])
+}
+
+model Rh {
+  id           Int           @id @default(autoincrement())
+  funcionarios Funcionario[]
+}
+
+model Projeto {
+  id           Int           @id @default(autoincrement())
+  nome         String
+  status       String
+  dataInicio   DateTime
+  dataFim      DateTime?
+  funcionarios Funcionario[]
+}
+
+// ==========================================
+// CLIENTES E CRM
+// ==========================================
+
+model Cliente {
+  id       Int     @id @default(autoincrement())
+  cpfCnpj  String  @unique
+  telefone String?
+  vendas   Venda[]
+  crm      Crm?    // Relação 1:1 com o CRM
+}
+
+model Crm {
+  id                  Int     @id @default(autoincrement())
+  historicoInteracoes String // Pode ser um JSON ou Texto longo
+  clienteId           Int     @unique
+  cliente             Cliente @relation(fields: [clienteId], references: [id])
+}
+
+// ==========================================
+// PRODUTOS, ESTOQUE E MINERAÇÃO
+// ==========================================
+
+model Produto {
+  id           Int           @id @default(autoincrement())
+  nome         String
+  descricao    String?
+  preco        Float
+  itensVenda   ItemVenda[]
+  itensCompra  ItemCompra[]
+  itensEstoque ItemEstoque[]
+  minerioId    Int?
+  minerio      Minerio?      @relation(fields: [minerioId], references: [id])
+}
+
+model Minerio {
+  id          Int        @id @default(autoincrement())
+  tipoMinerio String
+  pureza      Float
+  produtos    Produto[]
+  extracoes   Extracao[]
+}
+
+model Extracao {
+  id         Int      @id @default(autoincrement())
+  data       DateTime @default(now())
+  quantidade Float
+  minerioId  Int
+  minerio    Minerio  @relation(fields: [minerioId], references: [id])
+}
+
+model Estoque {
+  id    Int           @id @default(autoincrement())
+  itens ItemEstoque[]
+}
+
+model ItemEstoque {
+  id         Int     @id @default(autoincrement())
+  quantidade Int
+  produtoId  Int
+  produto    Produto @relation(fields: [produtoId], references: [id])
+  estoqueId  Int
+  estoque    Estoque @relation(fields: [estoqueId], references: [id])
+}
+
+// ==========================================
+// VENDAS, COMPRAS E LOGÍSTICA
+// ==========================================
+
+model Venda {
+  id         Int         @id @default(autoincrement())
+  valorTotal Float       @default(0.0)
+  data       DateTime    @default(now())
+  clienteId  Int
+  cliente    Cliente     @relation(fields: [clienteId], references: [id])
+  itens      ItemVenda[]
+  logistica  Logistica?  // Relação 1:1 (Uma venda tem uma entrega)
+}
+
+model ItemVenda {
+  id            Int     @id @default(autoincrement())
+  quantidade    Int
+  precoUnitario Float
+  produtoId     Int
+  produto       Produto @relation(fields: [produtoId], references: [id])
+  vendaId       Int
+  venda         Venda   @relation(fields: [vendaId], references: [id])
+}
+
+model Compra {
+  id         Int          @id @default(autoincrement())
+  valorTotal Float        @default(0.0)
+  data       DateTime     @default(now())
+  itens      ItemCompra[]
+}
+
+model ItemCompra {
+  id            Int     @id @default(autoincrement())
+  quantidade    Int
+  precoUnitario Float
+  produtoId     Int
+  produto       Produto @relation(fields: [produtoId], references: [id])
+  compraId      Int
+  compra        Compra  @relation(fields: [compraId], references: [id])
+}
+
+model Logistica {
+  id              Int    @id @default(autoincrement())
+  statusEntrega   String
+  enderecoEntrega String
+  vendaId         Int    @unique
+  venda           Venda  @relation(fields: [vendaId], references: [id])
+}
+
+// ==========================================
+// FINANCEIRO E CONTÁBIL
+// ==========================================
+
+model Financeiro {
+  id    Int      @id @default(autoincrement())
+  tipo  String   // "entrada" ou "saida"
+  valor Float
+  data  DateTime @default(now())
+}
+
+model Contabil {
+  id            Int      @id @default(autoincrement())
+  tipoRelatorio String
+  data          DateTime @default(now())
+}
